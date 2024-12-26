@@ -1,0 +1,359 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+import sqlite3
+
+
+conn = sqlite3.connect('hotel_reservation.db')
+cursor = conn.cursor()
+
+root = tk.Tk()
+root.title("Hotel Reservation System")
+
+notebook = ttk.Notebook(root)
+notebook.pack(expand=1, fill='both')
+
+def execute_query(query, params=()):
+    try:
+        cursor.execute(query, params)
+        conn.commit()
+        return True
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+        return False
+
+
+def fetch_all(query, params=()):
+    cursor.execute(query, params)
+    return cursor.fetchall()
+
+
+
+guest_tab = ttk.Frame(notebook)
+notebook.add(guest_tab, text="Guests")
+
+
+tk.Label(guest_tab, text="Guest ID").grid(row=0, column=0, padx=10, pady=10)
+guest_id_entry = tk.Entry(guest_tab)
+guest_id_entry.grid(row=0, column=1, padx=10, pady=10)
+
+tk.Label(guest_tab, text="Guest Name").grid(row=1, column=0, padx=10, pady=10)
+guest_name_entry = tk.Entry(guest_tab)
+guest_name_entry.grid(row=1, column=1, padx=10, pady=10)
+
+tk.Label(guest_tab, text="Birth Date (YYYY-MM-DD)").grid(row=2, column=0, padx=10, pady=10)
+birth_date_entry = tk.Entry(guest_tab)
+birth_date_entry.grid(row=2, column=1, padx=10, pady=10)
+
+tk.Label(guest_tab, text="Address").grid(row=3, column=0, padx=10, pady=10)
+address_entry = tk.Entry(guest_tab)
+address_entry.grid(row=3, column=1, padx=10, pady=10)
+
+tk.Label(guest_tab, text="Phone Number").grid(row=4, column=0, padx=10, pady=10)
+phone_no_entry = tk.Entry(guest_tab)
+phone_no_entry.grid(row=4, column=1, padx=10, pady=10)
+
+
+def add_guest():
+    guest_id = guest_id_entry.get()
+    guest_name = guest_name_entry.get()
+    birth_date = birth_date_entry.get()
+    address = address_entry.get()
+    phone_no = phone_no_entry.get()
+
+    if execute_query("INSERT INTO GUEST (GUEST_ID, GUEST_NAME, BIRTH_DATE, ADDRESS, PHONE_NO) VALUES (?, ?, ?, ?, ?)",
+                     (guest_id, guest_name, birth_date, address, phone_no)):
+        messagebox.showinfo("Success", "Guest added successfully")
+        guest_id_entry.delete(0, tk.END)
+        guest_name_entry.delete(0, tk.END)
+        birth_date_entry.delete(0, tk.END)
+        address_entry.delete(0, tk.END)
+        phone_no_entry.delete(0, tk.END)
+        refresh_guest_table()
+
+add_guest_button = tk.Button(guest_tab, text="Add Guest", command=add_guest)
+add_guest_button.grid(row=5, columnspan=2, pady=10)
+
+
+guest_table = ttk.Treeview(guest_tab, columns=("Guest ID", "Name", "Birth Date", "Address", "Phone"), show='headings')
+guest_table.grid(row=6, column=0, columnspan=2, padx=10, pady=10)
+
+for col in guest_table["columns"]:
+    guest_table.heading(col, text=col)
+
+
+def refresh_guest_table():
+    for row in guest_table.get_children():
+        guest_table.delete(row)
+    guests = fetch_all("SELECT * FROM GUEST")
+    for guest in guests:
+        guest_table.insert("", "end", values=guest)
+
+
+def delete_guest():
+    selected_item = guest_table.selection()
+    if not selected_item:
+        messagebox.showwarning("Warning", "Please select a guest to delete")
+        return
+    guest_id = guest_table.item(selected_item[0], "values")[0]
+    if execute_query("DELETE FROM GUEST WHERE GUEST_ID = ?", (guest_id,)):
+        messagebox.showinfo("Success", "Guest deleted successfully")
+        refresh_guest_table()
+
+delete_guest_button = tk.Button(guest_tab, text="Delete Guest", command=delete_guest)
+delete_guest_button.grid(row=7, columnspan=2, pady=10)
+
+refresh_guest_table()
+
+
+
+room_tab = ttk.Frame(notebook)
+notebook.add(room_tab, text="Rooms")
+
+
+tk.Label(room_tab, text="Room ID").grid(row=0, column=0, padx=10, pady=10)
+room_id_entry = tk.Entry(room_tab)
+room_id_entry.grid(row=0, column=1, padx=10, pady=10)
+
+tk.Label(room_tab, text="Room Type").grid(row=1, column=0, padx=10, pady=10)
+room_type_entry = tk.Entry(room_tab)
+room_type_entry.grid(row=1, column=1, padx=10, pady=10)
+
+tk.Label(room_tab, text="Floor").grid(row=2, column=0, padx=10, pady=10)
+floor_entry = tk.Entry(room_tab)
+floor_entry.grid(row=2, column=1, padx=10, pady=10)
+
+tk.Label(room_tab, text="Capacity").grid(row=3, column=0, padx=10, pady=10)
+capacity_entry = tk.Entry(room_tab)
+capacity_entry.grid(row=3, column=1, padx=10, pady=10)
+
+tk.Label(room_tab, text="Price Per Night").grid(row=4, column=0, padx=10, pady=10)
+price_per_night_entry = tk.Entry(room_tab)
+price_per_night_entry.grid(row=4, column=1, padx=10, pady=10)
+
+tk.Label(room_tab, text="Availability (Y/N)").grid(row=5, column=0, padx=10, pady=10)
+availability_entry = tk.Entry(room_tab)
+availability_entry.grid(row=5, column=1, padx=10, pady=10)
+
+
+def add_room():
+    room_id = room_id_entry.get()
+    room_type = room_type_entry.get()
+    floor = floor_entry.get()
+    capacity = capacity_entry.get()
+    price_per_night = price_per_night_entry.get()
+    availability = availability_entry.get()
+
+    if execute_query("INSERT INTO ROOM (ROOM_ID, ROOM_TYPE, FLOOR, CAPACITY, PRICE_PER_NIGHT, AVAILABILITY) VALUES (?, ?, ?, ?, ?, ?)",
+                     (room_id, room_type, floor, capacity, price_per_night, availability)):
+        messagebox.showinfo("Success", "Room added successfully")
+        room_id_entry.delete(0, tk.END)
+        room_type_entry.delete(0, tk.END)
+        floor_entry.delete(0, tk.END)
+        capacity_entry.delete(0, tk.END)
+        price_per_night_entry.delete(0, tk.END)
+        availability_entry.delete(0, tk.END)
+        refresh_room_table()
+
+add_room_button = tk.Button(room_tab, text="Add Room", command=add_room)
+add_room_button.grid(row=6, columnspan=2, pady=10)
+
+
+room_table = ttk.Treeview(room_tab, columns=("Room ID", "Type", "Floor", "Capacity", "Price", "Availability"), show='headings')
+room_table.grid(row=7, column=0, columnspan=2, padx=10, pady=10)
+
+for col in room_table["columns"]:
+    room_table.heading(col, text=col)
+
+
+def refresh_room_table():
+    for row in room_table.get_children():
+        room_table.delete(row)
+    rooms = fetch_all("SELECT * FROM ROOM")
+    for room in rooms:
+        room_table.insert("", "end", values=room)
+
+
+def delete_room():
+    selected_item = room_table.selection()
+    if not selected_item:
+        messagebox.showwarning("Warning", "Please select a room to delete")
+        return
+    room_id = room_table.item(selected_item[0], "values")[0]
+    if execute_query("DELETE FROM ROOM WHERE ROOM_ID = ?", (room_id,)):
+        messagebox.showinfo("Success", "Room deleted successfully")
+        refresh_room_table()
+
+delete_room_button = tk.Button(room_tab, text="Delete Room", command=delete_room)
+delete_room_button.grid(row=8, columnspan=2, pady=10)
+
+refresh_room_table()
+
+
+
+bill_tab = ttk.Frame(notebook)
+notebook.add(bill_tab, text="Bills")
+
+
+tk.Label(bill_tab, text="Booking ID").grid(row=0, column=0, padx=10, pady=10)
+bill_booking_id_entry = tk.Entry(bill_tab)
+bill_booking_id_entry.grid(row=0, column=1, padx=10, pady=10)
+
+tk.Label(bill_tab, text="Staff ID").grid(row=1, column=0, padx=10, pady=10)
+bill_staff_id_entry = tk.Entry(bill_tab)
+bill_staff_id_entry.grid(row=1, column=1, padx=10, pady=10)
+
+tk.Label(bill_tab, text="Total Cost").grid(row=2, column=0, padx=10, pady=10)
+bill_total_cost_entry = tk.Entry(bill_tab)
+bill_total_cost_entry.grid(row=2, column=1, padx=10, pady=10)
+
+tk.Label(bill_tab, text="Payment Method").grid(row=3, column=0, padx=10, pady=10)
+bill_payment_method_entry = tk.Entry(bill_tab)
+bill_payment_method_entry.grid(row=3, column=1, padx=10, pady=10)
+
+
+def add_bill():
+    booking_id = bill_booking_id_entry.get()
+    staff_id = bill_staff_id_entry.get()
+    total_cost = bill_total_cost_entry.get()
+    payment_method = bill_payment_method_entry.get()
+
+    
+    cursor.execute("SELECT MAX(PAYMENT_ID) FROM PAYMENT_BILL")
+    max_payment_id = cursor.fetchone()[0]
+    if max_payment_id is None:
+        payment_id = 1
+    else:
+        payment_id = max_payment_id + 1
+
+    if execute_query("INSERT INTO PAYMENT_BILL (PAYMENT_ID, BOOKING_ID, STAFF_ID, TOTALCOST, PAYMENT_METHOD) VALUES (?, ?, ?, ?, ?)",
+                     (payment_id, booking_id, staff_id, total_cost, payment_method)):
+        messagebox.showinfo("Success", "Bill added successfully")
+        bill_booking_id_entry.delete(0, tk.END)
+        bill_staff_id_entry.delete(0, tk.END)
+        bill_total_cost_entry.delete(0, tk.END)
+        bill_payment_method_entry.delete(0, tk.END)
+        refresh_bill_table()
+
+add_bill_button = tk.Button(bill_tab, text="Add Bill", command=add_bill)
+add_bill_button.grid(row=4, columnspan=2, pady=10)
+
+
+bill_table = ttk.Treeview(bill_tab, columns=("Payment ID", "Booking ID", "Staff ID", "Total Cost", "Payment Method"), show='headings')
+bill_table.grid(row=5, column=0, columnspan=2, padx=10, pady=10)
+
+for col in bill_table["columns"]:
+    bill_table.heading(col, text=col)
+
+
+def refresh_bill_table():
+    for row in bill_table.get_children():
+        bill_table.delete(row)
+    bills = fetch_all("SELECT * FROM PAYMENT_BILL")
+    for bill in bills:
+        bill_table.insert("", "end", values=bill)
+
+
+def delete_bill():
+    selected_item = bill_table.selection()
+    if not selected_item:
+        messagebox.showwarning("Warning", "Please select a bill to delete")
+        return
+    payment_id = bill_table.item(selected_item[0], "values")[0]
+    if execute_query("DELETE FROM PAYMENT_BILL WHERE PAYMENT_ID = ?", (payment_id,)):
+        messagebox.showinfo("Success", "Bill deleted successfully")
+        refresh_bill_table()
+
+delete_bill_button = tk.Button(bill_tab, text="Delete Bill", command=delete_bill)
+delete_bill_button.grid(row=6, columnspan=2, pady=10)
+
+refresh_bill_table()
+
+
+
+booking_tab = ttk.Frame(notebook)
+notebook.add(booking_tab, text='Bookings')
+
+
+tk.Label(booking_tab, text="Guest ID").grid(row=0, column=0, padx=10, pady=10)
+booking_guest_id_entry = tk.Entry(booking_tab)
+booking_guest_id_entry.grid(row=0, column=1, padx=10, pady=10)
+
+tk.Label(booking_tab, text="Room ID").grid(row=1, column=0, padx=10, pady=10)
+booking_room_id_entry = tk.Entry(booking_tab)
+booking_room_id_entry.grid(row=1, column=1, padx=10, pady=10)
+
+tk.Label(booking_tab, text="Staff ID").grid(row=2, column=0, padx=10, pady=10)
+booking_staff_id_entry = tk.Entry(booking_tab)
+booking_staff_id_entry.grid(row=2, column=1, padx=10, pady=10)
+
+tk.Label(booking_tab, text="Check-in Date (YYYY-MM-DD)").grid(row=3, column=0, padx=10, pady=10)
+checkin_date_entry = tk.Entry(booking_tab)
+checkin_date_entry.grid(row=3, column=1, padx=10, pady=10)
+
+tk.Label(booking_tab, text="Check-out Date (YYYY-MM-DD)").grid(row=4, column=0, padx=10, pady=10)
+checkout_date_entry = tk.Entry(booking_tab)
+checkout_date_entry.grid(row=4, column=1, padx=10, pady=10)
+
+
+def add_booking():
+    guest_id = booking_guest_id_entry.get()
+    room_id = booking_room_id_entry.get()
+    staff_id = booking_staff_id_entry.get()
+    checkin_date = checkin_date_entry.get()
+    checkout_date = checkout_date_entry.get()
+
+    # Get the next available BOOKING_ID
+    cursor.execute("SELECT MAX(BOOKING_ID) FROM BOOKINGS")
+    max_booking_id = cursor.fetchone()[0]
+    if max_booking_id is None:
+        booking_id = 1  # Start from 1 if the table is empty
+    else:
+        booking_id = max_booking_id + 1
+
+    if execute_query("INSERT INTO BOOKINGS (BOOKING_ID, GUEST_ID, ROOM_ID, STAFF_ID, CHECKIN_DATE, CHECKOUT_DATE) VALUES (?, ?, ?, ?, ?, ?)",
+                     (booking_id, guest_id, room_id, staff_id, checkin_date, checkout_date)):
+        messagebox.showinfo("Success", "Booking added successfully")
+        booking_guest_id_entry.delete(0, tk.END)
+        booking_room_id_entry.delete(0, tk.END)
+        booking_staff_id_entry.delete(0, tk.END)
+        checkin_date_entry.delete(0, tk.END)
+        checkout_date_entry.delete(0, tk.END)
+        refresh_booking_table()
+
+add_booking_button = tk.Button(booking_tab, text="Add Booking", command=add_booking)
+add_booking_button.grid(row=5, columnspan=2, pady=20)
+
+
+booking_table = ttk.Treeview(booking_tab, columns=("Booking ID", "Guest ID", "Room ID", "Staff ID", "Check-in", "Check-out"), show='headings')
+booking_table.grid(row=6, column=0, columnspan=2, padx=10, pady=10)
+
+for col in booking_table["columns"]:
+    booking_table.heading(col, text=col)
+
+
+def refresh_booking_table():
+    for row in booking_table.get_children():
+        booking_table.delete(row)
+    bookings = fetch_all("SELECT * FROM BOOKINGS")
+    for booking in bookings:
+        booking_table.insert("", "end", values=booking)
+
+
+def delete_booking():
+    selected_item = booking_table.selection()
+    if not selected_item:
+        messagebox.showwarning("Warning", "Please select a booking to delete")
+        return
+    booking_id = booking_table.item(selected_item[0], "values")[0]
+    if execute_query("DELETE FROM BOOKINGS WHERE BOOKING_ID = ?", (booking_id,)):
+        messagebox.showinfo("Success", "Booking deleted successfully")
+        refresh_booking_table()
+
+
+delete_booking_button = tk.Button(booking_tab, text="Delete Booking", command=delete_booking)
+delete_booking_button.grid(row=7, columnspan=2, pady=10)
+
+
+refresh_booking_table()
+
+root.mainloop()
